@@ -52,6 +52,7 @@ typedef enum {
 
 #define printf Serial.printf
 
+
 #define CAN_MSG_SIZE    8       /* messages are always 8 bytes */
 
 #define CEM_HS_ECU_ID   0x50    /* CEM ECU id on the high-speed CAN bus */
@@ -512,8 +513,14 @@ again:
       frame++;
     }
   } while (frame < 2);
-
+  char buf[20];
   printf ("Part Number: %u\n", pn);
+  sprintf (buf, "partnr.txt=\"%" PRIu32 "\"", pn);
+ Serial4.print(buf);
+// Serial4.print (buf);
+ Serial4.write (0xFF);
+ Serial4.write (0xFF);
+ Serial4.write (0xFF);
   return pn;
 }
 
@@ -669,6 +676,11 @@ void crack_range (uint8_t *pin, uint32_t pos, uint8_t *seq, uint32_t range, uint
   memset (sequence, 0, sizeof(sequence));
 
   printf ("range %u, samples %u\n", range, samples);
+  
+  Serial4.print("status.txt=\"range samples\"");
+  Serial4.write(0xFF);
+  Serial4.write(0xFF);
+  Serial4.write(0xFF);
   printf ("candidates short list: ");
 
   for (i = 0; i < min (50u, range); i++)
@@ -844,6 +856,13 @@ void crack_range (uint8_t *pin, uint32_t pos, uint8_t *seq, uint32_t range, uint
 
     pin[pos] = sequence[0].pinValue;
     printf ("pin[%u] choose candidate: %02x\n", pos, pin[pos]);
+    char tpin[23];
+    sprintf(tpin, "t%u.txt=\"%02x\"", pos, pin[pos]);
+     Serial4.print (tpin);
+ Serial4.write (0xFF);
+ Serial4.write (0xFF);
+ Serial4.write (0xFF);
+    
   }
 
   free (histogram);
@@ -873,6 +892,10 @@ void cemCrackPin (uint32_t maxBytes, bool verbose)
 
   printf ("Profiling CEM\n");
   lcd_printf (0, 1, "Profiling CEM   ");
+  Serial4.print("status.txt=\"Profiling CEM\"");
+  Serial4.write(0xFF);
+  Serial4.write(0xFF);
+  Serial4.write(0xFF);
   crackRate = profileCemResponse ();
 
   printf ("Calculating bytes 0-%u\n", maxBytes - 1);
@@ -899,11 +922,15 @@ void cemCrackPin (uint32_t maxBytes, bool verbose)
   /* show the result of the cracking */
 
   printf ("Candidate PIN ");
-
+  
+  
   /* show numerial values for the known digits */
 
   for (i=0; i < maxBytes; i++) {
     printf ("%02x ", pin[i]);
+ 
+    
+    
   }
 
   /* placeholder for the remaining digits */
@@ -952,6 +979,38 @@ void cemCrackPin (uint32_t maxBytes, bool verbose)
       printf ("done\n");
       printf ("\nfound PIN: %02x %02x %02x %02x %02x %02x",
               pinUsed[0], pinUsed[1], pinUsed[2], pinUsed[3], pinUsed[4], pinUsed[5]);
+              char upin[20];
+              sprintf(upin, "t0.txt=\"%02x\"",pinUsed[0]);
+     Serial4.print(upin);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+      sprintf(upin, "t1.txt=\"%02x\"",pinUsed[1]);
+      Serial4.print(upin);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+      sprintf(upin, "t2.txt=\"%02x\"",pinUsed[2]);
+      Serial4.print(upin);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+     sprintf(upin, "t3.txt=\"%02x\"",pinUsed[3]);
+      Serial4.print(upin);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+      sprintf(upin, "t4.txt=\"%02x\"",pinUsed[4]);
+      Serial4.print(upin);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+      sprintf(upin, "t5.txt=\"%02x\"",pinUsed[5]);
+      Serial4.print(upin);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+      Serial4.write (0xFF);
+        
 
       cracked = true;
       break;
@@ -961,6 +1020,13 @@ void cemCrackPin (uint32_t maxBytes, bool verbose)
 
     if ((i % percent_5) == 0) {
       printf ("%u%%..", percent * 5);
+      char progt[12];
+ sprintf (progt, "prog.val=%" PRIu32 "", percent * 5);
+ Serial4.print(progt);
+ Serial4.write (0xFF);
+ Serial4.write (0xFF);
+ Serial4.write (0xFF);
+      
       lcd_printf (0, 1, "Bytes %lu-%u %lu%%   ", maxBytes, PIN_LEN - 1, percent * 5);
       percent++;
     }
@@ -980,6 +1046,10 @@ void cemCrackPin (uint32_t maxBytes, bool verbose)
 
     printf ("Validating PIN\n");
     lcd_printf (0, 1, "Validating PIN  ");
+    Serial4.print("status.txt=\"Validate PIN\"");
+    Serial4.write(0xFF);
+    Serial4.write(0xFF);
+    Serial4.write(0xFF);
 
     /* send the unlock request to the CEM */
 
@@ -1243,8 +1313,13 @@ void setup (void)
 
   Serial.begin (115200);
   Serial3.begin (10800); /* K-Line */
+  Serial4.begin (9600); /*DISPLAY*/
 
   delay (3000);
+  Serial4.print ("partnr.txt=\"CEM-UPLOAD\"");
+ Serial4.write (0xFF);
+ Serial4.write (0xFF);
+ Serial4.write (0xFF);
 
   /* enable the time stamp counter */
 
@@ -1317,7 +1392,7 @@ void setup (void)
 
   lcd.clear ();
   lcd_printf (0, 0, "CEM: %lu", pn);
-
+ 
   shuffle_order = shuffle_orders[p_hs_params->shuffle];
 
   printf ("CAN HS baud rate: %d\n", p_hs_params->baud);
@@ -1330,7 +1405,10 @@ void setup (void)
     can_hs_init (p_hs_params->baud);
 
   lcd_printf (0, 1, "Enter PROG mode.");
-
+  Serial4.print("status.txt=\"Prog mode\"");
+  Serial4.write(0xFF);
+  Serial4.write(0xFF);
+  Serial4.write(0xFF);
   progModeOn ();
   if (!hs_inited)
       pn = ecu_read_part_number_prog (CAN_HS, CEM_HS_ECU_ID);
