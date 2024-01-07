@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 #include <FlexCAN_T4.h>
-#include <LiquidCrystal.h>
+
 
 #if !defined(__IMXRT1062__)
 #error Unsupported Teensy model, need 4.x
@@ -153,35 +153,7 @@ uint32_t calc_bytes = CALC_BYTES;
 
 extern "C" uint32_t set_arm_clock (uint32_t freq);
 
-/* Initialize the LCD library for use with the Hitachi HD44780
- * controller using the following interface pins:
- *
- * LCD RS pin to digital pin 8
- * LCD Enable pin to digital pin 9
- * LCD D4 pin to digital pin 4
- * LCD D5 pin to digital pin 5
- * LCD D6 pin to digital pin 6
- * LCD D7 pin to digital pin 7
- * LCD R/W pin to ground
- * LCD VSS pin to ground
- * LCD VCC pin to 5V
- * LCD VO pin to variable 10K resistor to ground
- * LCD LCD- to ground
- * LCD LCD+ to +5V via 1K resistor
- */
 
-#define	LCD_ROWS 2
-#define LCD_COLS 16
-
-const uint8_t rs = 8, en = 9, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
-LiquidCrystal lcd (rs, en, d4, d5, d6, d7);
-
-#define lcd_printf(x, y, fmt, args...) { \
-        char buf[LCD_COLS + 1]; \
-        snprintf (buf, sizeof(buf), fmt , ## args); \
-        lcd.setCursor (x, y); \
-        lcd.print (buf); \
-        }
 
 /* forward declarations */
 
@@ -701,10 +673,7 @@ void crack_range (uint8_t *pin, uint32_t pos, uint8_t *seq, uint32_t range, uint
 
   for (pin1 = 0; pin1 < range; pin1++) {
 
-    /* update display spinner */
-
-    lcd_spinner ();
-
+   
     /* set PIN digit */
 
     pin[pos] = seq[pin1];
@@ -766,9 +735,7 @@ void crack_range (uint8_t *pin, uint32_t pos, uint8_t *seq, uint32_t range, uint
 
         histogram[idx]++;
 
-        /* update display spinner */
-
-        lcd_spinner ();
+        
       }
     }
 
@@ -834,9 +801,6 @@ void crack_range (uint8_t *pin, uint32_t pos, uint8_t *seq, uint32_t range, uint
 
   qsort (sequence, range, sizeof(sequence_t), seq_max_lat);
 
-  /* update display spinner */
-
-  lcd_spinner ();
 
   /* print the top range/2 latencies and their PIN value */
 
@@ -891,7 +855,6 @@ void cemCrackPin (uint32_t maxBytes, bool verbose)
   /* profile the CEM to see how fast it can process requests */
 
   printf ("Profiling CEM\n");
-  lcd_printf (0, 1, "Profiling CEM   ");
   Serial4.print("status.txt=\"Profiling CEM\"");
   Serial4.write(0xFF);
   Serial4.write(0xFF);
@@ -899,8 +862,7 @@ void cemCrackPin (uint32_t maxBytes, bool verbose)
   crackRate = profileCemResponse ();
 
   printf ("Calculating bytes 0-%u\n", maxBytes - 1);
-  lcd_printf (0, 1, "Bytes 0-%lu       ", maxBytes - 1);
-
+  
   /* start time */
 
   start = millis ();
@@ -944,7 +906,7 @@ void cemCrackPin (uint32_t maxBytes, bool verbose)
           maxBytes, PIN_LEN - 1, remainingBytes,
           (uint32_t)(pow (100, remainingBytes) / crackRate));
 
-  lcd_printf (0, 1, "Bytes %lu-%u       ", maxBytes, PIN_LEN - 1);
+  
 
   /* 5% of the remaining PINs to try */
 
@@ -1027,8 +989,7 @@ void cemCrackPin (uint32_t maxBytes, bool verbose)
  Serial4.write (0xFF);
  Serial4.write (0xFF);
       
-      lcd_printf (0, 1, "Bytes %lu-%u %lu%%   ", maxBytes, PIN_LEN - 1, percent * 5);
-      percent++;
+            percent++;
     }
   }
 
@@ -1045,7 +1006,7 @@ void cemCrackPin (uint32_t maxBytes, bool verbose)
     uint32_t can_id = 0;
 
     printf ("Validating PIN\n");
-    lcd_printf (0, 1, "Validating PIN  ");
+   
     Serial4.print("status.txt=\"Validate PIN\"");
     Serial4.write(0xFF);
     Serial4.write(0xFF);
@@ -1076,15 +1037,14 @@ void cemCrackPin (uint32_t maxBytes, bool verbose)
       (data[0] == CEM_HS_ECU_ID) && (data[1] == 0xB9) && (data[2] == 0x00)) {
       printf ("PIN verified.\n");
 
-      lcd_printf (0, 0, "PIN: %02x %02x %02x  ", pinUsed[0], pinUsed[1], pinUsed[2]);
-      lcd_printf (0, 1, "     %02x %02x %02x  ", pinUsed[3], pinUsed[4], pinUsed[5]);
+      
     } else {
       printf ("PIN verification failed!\n");
 
-      lcd_printf (0, 1, "PIN: failed     ");
+      
     }
   } else {
-      lcd_printf (0, 1, "PIN: not cracked");
+      
   }
 
   printf ("done\n");
@@ -1206,87 +1166,6 @@ struct _cem_params *find_cem_params (uint32_t pn)
  *
  * Returns: N/A
  */
-
-void lcd_init (void) {
-
-  /* custom characters for use by the spinner */
-
-  const byte char0[8] = {
-        B11100,
-        B11100,
-        B11100,
-        B11100,
-        B00000,
-        B00000,
-        B00000,
-        B00000,
-  };
-  const byte char1[8] = {
-        B00111,
-        B00111,
-        B00111,
-        B00111,
-        B00000,
-        B00000,
-        B00000,
-        B00000,
-  };
-
-  const byte char2[8] = {
-        B00000,
-        B00000,
-        B00000,
-        B00000,
-        B00111,
-        B00111,
-        B00111,
-        B00111,
-  };
-
-  const byte char3[8] = {
-        B00000,
-        B00000,
-        B00000,
-        B00000,
-        B11100,
-        B11100,
-        B11100,
-        B11100,
-  };
-
-  lcd.createChar (0, char0);
-  lcd.createChar (1, char1);
-  lcd.createChar (2, char2);
-  lcd.createChar (3, char3);
-}
-
-/*******************************************************************************
- *
- * lcd_spinner - update the spinner on the LCD display
- *
- * Returns: N/A
- */
-
-void lcd_spinner (void) {
-  static uint32_t index = 0;
-  static uint32_t last_update = 0;
-  uint32_t timestamp;
-
-  /* must have at least 500ms between updates */
-
-  timestamp = millis ();
-
-  if ((timestamp - last_update) <  500)
-    return;
-
-  last_update = timestamp;
-
-  lcd.setCursor (15,1);
-  lcd.write (index);
-  index++;
-  index %= 4;
-}
-
 bool initialized = false;
 
 /*******************************************************************************
@@ -1298,17 +1177,6 @@ bool initialized = false;
 
 void setup (void)
 {
-
-  /* initialize the LCD display */
-
-  lcd.begin (LCD_COLS, LCD_ROWS);
-  lcd.clear ();
-  lcd.setCursor (0, 0);
-
-  lcd_init ();
-
-  lcd_printf (0, 0, "Initialzing...  ");
-
   /* set up the serial port */
 
   Serial.begin (115200);
@@ -1368,7 +1236,7 @@ void setup (void)
     /* might be CEM-L */
 
     printf ("Can't find part number on CAN-LS, trying CAN-HS at 500 Kbps\n");
-    lcd_printf (0, 0, "CAN_LS error    ");
+    
 
     can_hs_init (CAN_500KBPS);
     hs_inited = true;
@@ -1385,13 +1253,11 @@ void setup (void)
 
   if (!pn || ((p_hs_params = find_cem_params (pn)) == NULL)) {
     printf ("Unknown CEM part number %u. Don't know what to do.\n", pn);
-    lcd_printf (0, 0, "Unknown CEM     ");
-    lcd_printf (0, 1, "Exiting......   ");
+    
     return;
   }
 
-  lcd.clear ();
-  lcd_printf (0, 0, "CEM: %lu", pn);
+  
  
   shuffle_order = shuffle_orders[p_hs_params->shuffle];
 
@@ -1404,7 +1270,7 @@ void setup (void)
   if (!hs_inited)
     can_hs_init (p_hs_params->baud);
 
-  lcd_printf (0, 1, "Enter PROG mode.");
+  
   Serial4.print("status.txt=\"Prog mode\"");
   Serial4.write(0xFF);
   Serial4.write(0xFF);
